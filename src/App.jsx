@@ -16,6 +16,9 @@ import PatientManagement from './pages/receptionist/PatientManagement'
 import PatientDetail from './pages/receptionist/PatientDetail'
 import PatientRegistration from './pages/receptionist/PatientRegistration'
 import AppointmentManagement from './pages/receptionist/AppointmentManagement'
+import QueueManagement from './pages/receptionist/QueueManagement'
+import BillingCollection from './pages/receptionist/BillingCollection'
+import FollowUpManagement from './pages/receptionist/FollowUpManagement'
 
 // Doctor pages
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
@@ -81,6 +84,21 @@ function App() {
           <ProtectedRoute allowedRole="receptionist">
             <AppointmentManagement />
           </ProtectedRoute>
+        } />
+        <Route path="/receptionist/queue" element={
+          <ProtectedRoute allowedRole="receptionist">
+            <QueueManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/receptionist/billing" element={
+          <ProtectedRoute allowedRole="receptionist">
+            <BillingCollection />
+            </ProtectedRoute>
+        } />
+        <Route path="/receptionist/followup" element={
+          <ProtectedRoute allowedRole="receptionist">
+            <FollowUpManagement />
+            </ProtectedRoute>
         } />
 
         {/* Doctor module */}
