@@ -11,21 +11,8 @@ import { usePatients, useQueue, useAppointments, useDoctors, useBills } from '..
 
 // ─── Nav ────────────────────────────────────────────────────────────────────
 const NAV_LINKS = [
-  'Dashboard',
-  'Patients',
-  'Appointments',
-  'Doctors',
-  'Staff',
-  'OP',
-  'IP',
-  'Prescriptions',
-  'Pharmacy',
-  'Laboratory',
-  'Vehicles',
-  'Finance',
-  'Follow-ups',
-  'Reports',
-  'Settings',
+  'Dashboard', 'Doctors', 'Staff', 'IP',
+  'Vehicles', 'Finance', 'Follow-ups', 'Reports',
 ]
 
 // ─── Mock data ───────────────────────────────────────────────────────────────

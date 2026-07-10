@@ -28,3 +28,7 @@ This one's actually easy — the store already has followUps from when we did th
 7. Leave Ipmanagement.jsx, Reports.jsx, Vehicles.jsx, AddVehicle.jsx as lower priority
 IP (inpatient) admission, vehicle fleet, and PDF-style reports don't have any natural home in your current store schema (no inpatients or vehicles entity exists, and building those from scratch is a bigger new-feature ask, not a "wire up existing data" task like the others). I'd treat these as out of scope for today unless you tell me otherwise — they're the least connected to the "does the hospital workflow work" story.
 8. Quick cleanup, if time allows: dedupe the AdminTopBar + local StatusBadge that's copy-pasted across 7 admin files into one shared component.
+
+MODIFIED FILE :
+DispenceMedicine.jsx
+FollowUps.jsx

@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/common/Sidebar'
 import { useState } from 'react'
 import { usePatient, useVisit, useQueue } from '../../store/hospitalStore'
-
+import { useAppointments } from '../../store/hospitalStore'
 // This page is a single patient's detail view — only Dashboard and Patient
 // Management make sense as "back out" links here; the rest belong to the
 // receptionist's main workspace, not a patient-specific screen.
@@ -16,7 +16,7 @@ function PatientDetail() {
   // ── Shared store ──
   const patient = usePatient(id)
   const { queue } = useQueue()
-
+const { appointments } = useAppointments()
   const handleNavClick = (link) => {
     setActiveLink(link)
     if (link === "Dashboard")          navigate('/receptionist')
@@ -166,16 +166,50 @@ function PatientDetail() {
               ))}
             </div>
           </div>
-
-          {/* Next Appointment — placeholder, no appointments entity in the store yet */}
+{/* Next Appointment — real data from the shared store */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
             <h3 className="font-semibold text-gray-700 mb-4">Next Appointment</h3>
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-400 mb-3">Appointments aren't tracked in the shared store yet</p>
-              <button className="text-sm text-blue-500 hover:text-blue-600 transition font-medium">
-                + Schedule Appointment
-              </button>
-            </div>
+            {(() => {
+              const nextAppt = appointments
+                .filter(a => a.patientId === patient.id && a.status === "Scheduled")[0]
+
+              if (!nextAppt) {
+                return (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-400 mb-3">No upcoming appointment</p>
+                    <button
+                      onClick={() => navigate('/receptionist/appointments')}
+                      className="text-sm text-blue-500 hover:text-blue-600 transition font-medium"
+                    >
+                      + Schedule Appointment
+                    </button>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="flex flex-col gap-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Doctor</span>
+                    <span className="font-medium text-gray-800">{nextAppt.doctor}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Date</span>
+                    <span className="font-medium text-gray-800">{nextAppt.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Time</span>
+                    <span className="font-medium text-gray-800">{nextAppt.time}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Type</span>
+                    <span className="bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">
+                      {nextAppt.type}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
         </div>

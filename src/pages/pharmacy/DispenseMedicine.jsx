@@ -30,10 +30,34 @@ function DispenseMedicine() {
   const { decrementStock } = useMedicines()
   const { addBill } = useBills()
 
+  const handleNavClick = (link) => {
+    setActiveLink(link)
+    if (link === "Dashboard")          navigate('/pharmacy')
+    if (link === "Medicine Inventory") navigate('/pharmacy/inventory')
+    if (link === "Add Medicine")       navigate('/pharmacy/add-medicine')
+    if (link === "Prescription Queue") navigate('/pharmacy/prescriptions')
+    if (link === "Billing")            navigate('/pharmacy/billing')
+  }
+
   // Fall back to the first pending prescription if no rxId in the URL
+  // (same pattern used across the app: SampleCollection, ResultEntry, etc.)
+  const rx = paramRxId
+    ? prescriptions.find(p => p.rxId === paramRxId)
+    : prescriptions.find(p => p.status === "Pending") || prescriptions[0]
 
+  if (!rx) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar links={NAV_LINKS} activeLink={activeLink} onLinkClick={handleNavClick} />
+        <main className="flex-1 p-6">
+          <p className="text-gray-500">No prescriptions waiting to be dispensed.</p>
+        </main>
+      </div>
+    )
+  }
 
-  
+  const patient = patients.find(p => p.id === rx.patientId)
+
   const subtotal = rx.medicines.reduce((sum, m) => sum + (m.price || 0), 0)
   const gst = +(subtotal * 0.12).toFixed(2)
   const total = +(subtotal + gst).toFixed(2)

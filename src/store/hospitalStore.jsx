@@ -140,6 +140,13 @@ const SEED_PRESCRIPTIONS = [
   },
 ]
 
+
+// Vehicles — ambulances, staff vans, doctor cars
+const SEED_VEHICLES = [
+  { id: "V-001", reg: "KL 07 AB 1234", type: "Ambulance", status: "Available", driver: "Ravi Kumar", insurance: "31 Aug 2026", permitExpiry: "30 Jun 2026", nextService: "01 Aug 2026" },
+  { id: "V-002", reg: "KL 07 CD 9012", type: "Staff Van", status: "Available", driver: "Murugan P", insurance: "22 Jul 2026", permitExpiry: "20 Jun 2026", nextService: "05 Jul 2026" },
+  { id: "V-003", reg: "KL 07 EF 3456", type: "Doctor Car", status: "Maintenance", driver: "Joseph M", insurance: "10 Feb 2027", permitExpiry: "28 Feb 2027", nextService: "16 Sep 2026" },
+]
 // Lab orders — the hop from Doctor → Lab
 const SEED_LAB_ORDERS = [
   {
@@ -201,13 +208,14 @@ const initialState = {
   vitals: SEED_VITALS,
   diagnoses: SEED_DIAGNOSES,
   prescriptions: SEED_PRESCRIPTIONS,
-  appointments: SEED_APPOINTMENTS,        // ADD THIS
+  appointments: SEED_APPOINTMENTS,
   labOrders: SEED_LAB_ORDERS,
-  doctors: SEED_DOCTORS,             // ADD THIS
+  doctors: SEED_DOCTORS,
   staff: SEED_STAFF,
-  labResults: SEED_LAB_RESULTS,           // NEW
-  radiologyOrders: SEED_RADIOLOGY_ORDERS, // NEW
-  followUps: SEED_FOLLOWUPS,              // NEW
+  vehicles: SEED_VEHICLES,          // ADD THIS
+  labResults: SEED_LAB_RESULTS,
+  radiologyOrders: SEED_RADIOLOGY_ORDERS,
+  followUps: SEED_FOLLOWUPS,
   medicines: SEED_MEDICINES,
   bills: SEED_BILLS,
 }
@@ -302,7 +310,17 @@ function hospitalReducer(state, action) {
         },
       }
     }
+    case 'ADD_VEHICLE': {
+      return { ...state, vehicles: [action.payload, ...state.vehicles] }
+    }
 
+    case 'UPDATE_VEHICLE_STATUS': {
+      const { id, status } = action.payload
+      return {
+        ...state,
+        vehicles: state.vehicles.map(v => v.id === id ? { ...v, status } : v),
+      }
+    }
     case 'CREATE_RADIOLOGY_ORDER': {
       return { ...state, radiologyOrders: [action.payload, ...state.radiologyOrders] }
     }
@@ -570,4 +588,11 @@ export function useStaff() {
   const addStaff = (member) => dispatch({ type: 'ADD_STAFF', payload: member })
   const updateStatus = (id, status) => dispatch({ type: 'UPDATE_STAFF_STATUS', payload: { id, status } })
   return { staff: state.staff, addStaff, updateStatus }
+}
+
+export function useVehicles() {
+  const { state, dispatch } = useHospital()
+  const addVehicle = (vehicle) => dispatch({ type: 'ADD_VEHICLE', payload: vehicle })
+  const updateStatus = (id, status) => dispatch({ type: 'UPDATE_VEHICLE_STATUS', payload: { id, status } })
+  return { vehicles: state.vehicles, addVehicle, updateStatus }
 }

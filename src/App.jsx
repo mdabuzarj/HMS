@@ -276,7 +276,7 @@ function App() {
             <Vehicles />
           </ProtectedRoute>
         } />
-        <Route path="/admin/vehicles/add" element={
+        <Route path="/admin/add-vehicle" element={
           <ProtectedRoute allowedRole="admin">
             <AddVehicle />
           </ProtectedRoute>
