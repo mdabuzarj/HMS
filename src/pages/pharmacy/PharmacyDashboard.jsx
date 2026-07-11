@@ -22,13 +22,24 @@ function PharmacyDashboard() {
 
   // ── Shared store ──
   const { prescriptions } = usePrescriptions()
-  const { medicines } = useMedicines()
+  const { medicines, restockMedicine } = useMedicines()
   const patients = usePatients()
 
   const lowStock = medicines.filter(m => m.stock < m.reorderLevel)
   const pendingCount = prescriptions.filter(rx => rx.status === "Pending").length
   const dispensedCount = prescriptions.filter(rx => rx.status === "Dispensed").length
+  const [refreshing, setRefreshing] = useState(false)
 
+
+const handleReorder = (item) => {
+  const qty = item.reorderLevel * 2 - item.stock
+  restockMedicine(item.name, qty)
+}
+  const handleRefresh = () => {
+  setRefreshing(true)
+  // Data is already reactive via context, this just gives visible feedback
+  setTimeout(() => setRefreshing(false), 600)
+  }
   const handleNavClick = (link) => {
     setActiveLink(link)
     if (link === "Medicine Inventory") navigate('/pharmacy/inventory')
@@ -54,8 +65,11 @@ function PharmacyDashboard() {
               Thursday, 19 June 2025 · Pharmacist: {user?.name}
             </p>
           </div>
-          <button className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
-            ↻ Refresh
+          <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+          <span className={refreshing ? "inline-block animate-spin" : ""}>↻</span> Refresh
           </button>
         </div>
 
@@ -139,9 +153,12 @@ function PharmacyDashboard() {
                     <p className="text-sm font-medium text-gray-800">{item.name}</p>
                     <p className="text-xs text-red-400">Stock: {item.stock} (Min: {item.reorderLevel})</p>
                   </div>
-                  <button className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap">
-                    + Reorder
-                  </button>
+                  <button
+  onClick={() => handleReorder(item)}
+  className="text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 whitespace-nowrap"
+>
+  + Reorder
+</button>
                 </div>
               ))}
               {lowStock.length === 0 && (

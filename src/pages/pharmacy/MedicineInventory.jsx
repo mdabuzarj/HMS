@@ -21,13 +21,10 @@ const STATUS_STYLES = {
   "Out of Stock": "bg-red-100 text-red-700",
 }
 
-// Derive live status from stock vs reorderLevel rather than trusting a
-// stored field — this way it's always correct even after DECREMENT_STOCK
-// or a freshly-added medicine changes the numbers.
 function deriveStatus(m) {
   if (m.stock === 0) return "Out of Stock"
   if (m.stock < m.reorderLevel) return "Low Stock"
-  if (m.status === "Expiring Soon") return "Expiring Soon" // seed data flag, no expiry-date math yet
+  if (m.status === "Expiring Soon") return "Expiring Soon"
   return "In Stock"
 }
 
@@ -36,9 +33,11 @@ function MedicineInventory() {
   const navigate = useNavigate()
   const [activeLink, setActiveLink] = useState("Medicine Inventory")
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")
+  const [editing, setEditing] = useState(null)
 
-  // ── Shared store ──
-  const { medicines } = useMedicines()
+  // ── Shared store ── (must be declared before anything below uses it)
+  const { medicines, restockMedicine, updateMedicine } = useMedicines()
 
   const handleNavClick = (link) => {
     setActiveLink(link)
@@ -52,15 +51,41 @@ function MedicineInventory() {
 
   const enriched = medicines.map(m => ({ ...m, liveStatus: deriveStatus(m) }))
 
-  const filtered = enriched.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    (m.generic || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = enriched.filter(m => {
+    const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
+      (m.generic || '').toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === "All" || m.liveStatus === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   const totalItems      = medicines.length
   const inStockCount    = enriched.filter(m => m.liveStatus === "In Stock").length
   const lowStockCount   = enriched.filter(m => m.liveStatus === "Low Stock").length
   const expiringCount   = enriched.filter(m => m.liveStatus === "Expiring Soon").length
+
+  const handleExport = () => {
+    const headers = ["Name", "Generic", "Category", "Stock", "Batch", "Expiry", "Price", "ReorderLevel", "Status"]
+    const rows = filtered.map(m => [m.name, m.generic, m.category, m.stock, m.batch, m.expiry, m.price, m.reorderLevel, m.liveStatus])
+    const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "medicine_inventory.csv"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleRestock = (m) => {
+    const qtyStr = prompt(`Restock quantity for ${m.name}:`, "50")
+    const qty = parseInt(qtyStr, 10)
+    if (!isNaN(qty) && qty > 0) restockMedicine(m.name, qty)
+  }
+
+  const handleSaveEdit = (updates) => {
+    updateMedicine(editing.name, updates)
+    setEditing(null)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -75,7 +100,7 @@ function MedicineInventory() {
             <p className="text-sm text-gray-400">Manage all pharmaceutical stock</p>
           </div>
           <div className="flex gap-3">
-            <button className="text-sm text-gray-600 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+            <button onClick={handleExport} className="text-sm text-gray-600 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
               ⬇ Export
             </button>
             <button
@@ -87,7 +112,7 @@ function MedicineInventory() {
           </div>
         </div>
 
-        {/* Stats Row — now derived from real store data */}
+        {/* Stats Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <StatsCard icon="📦" label="Total Items"    value={totalItems} />
           <StatsCard icon="✅" label="In Stock"        value={inStockCount} />
@@ -106,9 +131,17 @@ function MedicineInventory() {
               placeholder="Search medicine..."
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap">
-              ▽ Filter
-            </button>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap focus:outline-none"
+            >
+              <option value="All">▽ All Status</option>
+              <option value="In Stock">In Stock</option>
+              <option value="Low Stock">Low Stock</option>
+              <option value="Out of Stock">Out of Stock</option>
+              <option value="Expiring Soon">Expiring Soon</option>
+            </select>
           </div>
 
           <div className="overflow-x-auto">
@@ -150,8 +183,8 @@ function MedicineInventory() {
                       </span>
                     </td>
                     <td className="py-3 text-right whitespace-nowrap">
-                      <button className="text-xs text-gray-500 hover:text-gray-700 mr-3">✏ Edit</button>
-                      <button className="text-xs border border-gray-200 px-2 py-1 rounded-lg hover:bg-gray-50 transition">+ Restock</button>
+                      <button onClick={() => setEditing(m)} className="text-xs text-gray-500 hover:text-gray-700 mr-3">✏ Edit</button>
+                      <button onClick={() => handleRestock(m)} className="text-xs border border-gray-200 px-2 py-1 rounded-lg hover:bg-gray-50 transition">+ Restock</button>
                     </td>
                   </tr>
                 ))}
@@ -167,6 +200,44 @@ function MedicineInventory() {
           </div>
         </div>
       </main>
+
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
+            <h3 className="font-semibold text-gray-800 mb-4">Edit {editing.name}</h3>
+            <form
+              onSubmit={e => {
+                e.preventDefault()
+                const form = new FormData(e.target)
+                handleSaveEdit({
+                  price: parseFloat(form.get("price")),
+                  reorderLevel: parseInt(form.get("reorderLevel"), 10),
+                  batch: form.get("batch"),
+                  expiry: form.get("expiry"),
+                })
+              }}
+              className="flex flex-col gap-3"
+            >
+              <label className="text-xs text-gray-500">Price
+                <input name="price" type="number" defaultValue={editing.price} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+              </label>
+              <label className="text-xs text-gray-500">Reorder Level
+                <input name="reorderLevel" type="number" defaultValue={editing.reorderLevel} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+              </label>
+              <label className="text-xs text-gray-500">Batch No.
+                <input name="batch" defaultValue={editing.batch} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+              </label>
+              <label className="text-xs text-gray-500">Expiry
+                <input name="expiry" defaultValue={editing.expiry} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+              </label>
+              <div className="flex justify-end gap-2 mt-3">
+                <button type="button" onClick={() => setEditing(null)} className="text-sm px-4 py-2 rounded-lg border border-gray-200">Cancel</button>
+                <button type="submit" className="text-sm px-4 py-2 rounded-lg bg-gray-900 text-white">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

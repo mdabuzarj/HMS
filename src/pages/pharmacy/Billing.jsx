@@ -26,6 +26,8 @@ function Billing() {
   const navigate = useNavigate()
   const [activeLink, setActiveLink] = useState("Billing")
   const [search, setSearch] = useState("")
+  const [modeFilter, setModeFilter] = useState("All")   // NEW
+  const [viewing, setViewing] = useState(null)           // NEW
 
   // ── Shared store ──
   const { bills } = useBills()
@@ -46,10 +48,13 @@ function Billing() {
     patientName: patients.find(p => p.id === b.patientId)?.name || b.patientId,
   }))
 
-  const filteredBills = enriched.filter(b =>
-    b.patientName.toLowerCase().includes(search.toLowerCase()) ||
-    b.billId.toLowerCase().includes(search.toLowerCase())
-  )
+  // REPLACED: search-only filter is now search + mode filter
+  const filteredBills = enriched.filter(b => {
+    const matchesSearch = b.patientName.toLowerCase().includes(search.toLowerCase()) ||
+      b.billId.toLowerCase().includes(search.toLowerCase())
+    const matchesMode = modeFilter === "All" || b.mode === modeFilter
+    return matchesSearch && matchesMode
+  })
 
   // Derived stats — real, from the store
   const todaysRevenue = bills.reduce((sum, b) => sum + (b.net || 0), 0)
@@ -57,6 +62,23 @@ function Billing() {
   const insuranceTotal = bills.filter(b => b.mode === "Insurance").reduce((sum, b) => sum + (b.net || 0), 0)
   const pendingTotal = bills.filter(b => b.status === "Partial" || b.status === "Pending")
     .reduce((sum, b) => sum + (b.net || 0), 0)
+
+  // NEW: print handler
+  const handlePrint = (b) => {
+    const win = window.open("", "_blank")
+    win.document.write(`
+      <html><head><title>${b.billId}</title></head>
+      <body style="font-family:sans-serif;padding:24px">
+        <h2>Pharmacy Bill — ${b.billId}</h2>
+        <p>Patient: ${b.patientName}</p>
+        <p>Items: ${b.items}</p>
+        <p>Gross: ₹${b.gross} | Discount: ₹${b.discount} | Net: ₹${b.net}</p>
+        <p>Payment Mode: ${b.mode} | Status: ${b.status}</p>
+      </body></html>
+    `)
+    win.document.close()
+    win.print()
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -70,7 +92,7 @@ function Billing() {
           <p className="text-sm text-gray-400">Create bills for OTC and prescription medicines</p>
         </div>
 
-        {/* Stats Row — now derived from real bills */}
+        {/* Stats Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <StatsCard icon="💲" label="Total Revenue"     value={`₹${todaysRevenue.toLocaleString('en-IN')}`} />
           <StatsCard icon="📄" label="Bills Raised"      value={billsRaised} />
@@ -89,9 +111,18 @@ function Billing() {
               placeholder="Search bill or patient..."
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap">
-              ▽ Filter
-            </button>
+            {/* REPLACED: static Filter button → working dropdown */}
+            <select
+              value={modeFilter}
+              onChange={e => setModeFilter(e.target.value)}
+              className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap focus:outline-none"
+            >
+              <option value="All">▽ All Modes</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="Insurance">Insurance</option>
+              <option value="UPI">UPI</option>
+            </select>
           </div>
 
           <div className="overflow-x-auto">
@@ -125,8 +156,8 @@ function Billing() {
                       </span>
                     </td>
                     <td className="py-3 text-right">
-                      <button className="text-xs text-gray-500 hover:text-gray-700 mr-3">🖨 Print</button>
-                      <button className="text-xs text-gray-500 hover:text-gray-700">👁 View</button>
+                      <button onClick={() => handlePrint(b)} className="text-xs text-gray-500 hover:text-gray-700 mr-3">🖨 Print</button>
+                      <button onClick={() => setViewing(b)} className="text-xs text-gray-500 hover:text-gray-700">👁 View</button>
                     </td>
                   </tr>
                 ))}
@@ -142,6 +173,27 @@ function Billing() {
           </div>
         </div>
       </main>
+
+      {/* NEW: View modal */}
+      {viewing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
+            <h3 className="font-semibold text-gray-800 mb-4">Bill {viewing.billId}</h3>
+            <div className="text-sm text-gray-600 flex flex-col gap-2">
+              <p><span className="text-gray-400">Patient:</span> {viewing.patientName}</p>
+              <p><span className="text-gray-400">Items:</span> {viewing.items}</p>
+              <p><span className="text-gray-400">Gross:</span> ₹{viewing.gross}</p>
+              <p><span className="text-gray-400">Discount:</span> ₹{viewing.discount}</p>
+              <p><span className="text-gray-400">Net:</span> ₹{viewing.net}</p>
+              <p><span className="text-gray-400">Mode:</span> {viewing.mode}</p>
+              <p><span className="text-gray-400">Status:</span> {viewing.status}</p>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setViewing(null)} className="text-sm px-4 py-2 rounded-lg bg-gray-900 text-white">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

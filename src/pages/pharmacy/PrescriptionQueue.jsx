@@ -29,6 +29,7 @@ function PrescriptionQueue() {
   const navigate = useNavigate()
   const [activeLink, setActiveLink] = useState("Prescription Queue")
   const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")   // ← NEW: added alongside other useState calls
 
   // ── Shared store ──
   const { prescriptions } = usePrescriptions()
@@ -49,10 +50,13 @@ function PrescriptionQueue() {
     patientName: patients.find(p => p.id === rx.patientId)?.name || rx.patientId,
   }))
 
-  const filtered = enriched.filter(rx =>
-    rx.patientName.toLowerCase().includes(search.toLowerCase()) ||
-    rx.rxId.toLowerCase().includes(search.toLowerCase())
-  )
+  // ← REPLACED: old `filtered` (search-only) is now search + status filter
+  const filtered = enriched.filter(rx => {
+    const matchesSearch = rx.patientName.toLowerCase().includes(search.toLowerCase()) ||
+      rx.rxId.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === "All" || rx.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -77,9 +81,18 @@ function PrescriptionQueue() {
               placeholder="Search prescription..."
               className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <button className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap">
-              ▽ Filter
-            </button>
+            {/* ← REPLACED: old static Filter button is now a working dropdown */}
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition whitespace-nowrap focus:outline-none"
+            >
+              <option value="All">▽ All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Processing">Processing</option>
+              <option value="Ready">Ready</option>
+              <option value="Dispensed">Dispensed</option>
+            </select>
           </div>
 
           <div className="overflow-x-auto">

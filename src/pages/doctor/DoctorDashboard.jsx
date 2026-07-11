@@ -28,6 +28,13 @@ function DoctorDashboard() {
   const pendingCount = doctorQueue.length
   const criticalCount = queue.filter(v => v.priority === "Critical").length
 
+  const [refreshing, setRefreshing] = useState(false)
+
+const handleRefresh = () => {
+  setRefreshing(true)
+  // Data is already reactive via context, this just gives visible feedback
+  setTimeout(() => setRefreshing(false), 600)
+}
   // NOTE: Every other sidebar link (Diagnosis, Prescription, Lab Order, etc.)
   // needs a :token in its route, and the Dashboard has no "current patient"
   // selected — it's a list of many. Routing there blind would just land on
@@ -53,9 +60,13 @@ function DoctorDashboard() {
               Thursday, 19 June 2025 · Dr. {user?.name} · Cardiology
             </p>
           </div>
-          <button className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50">
-            ↻ Refresh
-          </button>
+          <button
+  onClick={handleRefresh}
+  disabled={refreshing}
+  className="text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+>
+  <span className={refreshing ? "inline-block animate-spin" : ""}>↻</span> Refresh
+</button>
         </div>
 
         {/* Stats Row — derived from the store */}

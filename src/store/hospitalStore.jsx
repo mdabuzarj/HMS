@@ -381,6 +381,35 @@ function hospitalReducer(state, action) {
         ),
       }
     }
+    case 'RESTOCK_MEDICINE': {
+  const { name, qty } = action.payload
+  return {
+    ...state,
+    medicines: state.medicines.map(m =>
+      m.name === name ? { ...m, stock: m.stock + qty } : m
+    ),
+  }
+}
+
+case 'UPDATE_MEDICINE': {
+  const { name, updates } = action.payload
+  return {
+    ...state,
+    medicines: state.medicines.map(m =>
+      m.name === name ? { ...m, ...updates } : m
+    ),
+  }
+}
+
+case 'UPDATE_BILL_STATUS': {
+  const { billId, status } = action.payload
+  return {
+    ...state,
+    bills: state.bills.map(b =>
+      b.billId === billId ? { ...b, status } : b
+    ),
+  }
+}
     case 'ADD_MEDICINE': {
       return { ...state, medicines: [action.payload, ...state.medicines] }
     }
@@ -528,16 +557,19 @@ export function useLabOrders() {
 
 export function useMedicines() {
   const { state, dispatch } = useHospital()
-  const decrementStock = (name, qty) => dispatch({ type: 'DECREMENT_STOCK', payload: { name, qty } })
-  const addMedicine = (medicine) => dispatch({ type: 'ADD_MEDICINE', payload: medicine })
-  return { medicines: state.medicines, decrementStock, addMedicine }
+  const decrementStock   = (name, qty) => dispatch({ type: 'DECREMENT_STOCK', payload: { name, qty } })
+  const restockMedicine  = (name, qty) => dispatch({ type: 'RESTOCK_MEDICINE', payload: { name, qty } })
+  const addMedicine      = (medicine)  => dispatch({ type: 'ADD_MEDICINE', payload: medicine })
+  const updateMedicine   = (name, updates) => dispatch({ type: 'UPDATE_MEDICINE', payload: { name, updates } })
+  return { medicines: state.medicines, decrementStock, restockMedicine, addMedicine, updateMedicine }
 }
+
 export function useBills() {
   const { state, dispatch } = useHospital()
   const addBill = (bill) => dispatch({ type: 'ADD_BILL', payload: bill })
-  return { bills: state.bills, addBill }
+  const updateBillStatus = (billId, status) => dispatch({ type: 'UPDATE_BILL_STATUS', payload: { billId, status } })
+  return { bills: state.bills, addBill, updateBillStatus }
 }
-
 export function useAppointments() {
   const { state, dispatch } = useHospital()
   const createAppointment = (appt) => dispatch({ type: 'CREATE_APPOINTMENT', payload: appt })
